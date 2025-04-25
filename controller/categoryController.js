@@ -76,7 +76,7 @@ const categoryController = {
                 if (!categoryBySlug) {
                     return res.status(404).json({ message: 'Category not found' });
                 }
-        
+
                 return res.json(categoryBySlug);
             }
 
@@ -91,17 +91,11 @@ const categoryController = {
         try {
             const { name } = req.body;
 
-            if (!name || name.trim() === '') {
-                return res.status(400).json({
-                    message: 'Category name is required'
-                });
-            }
-
             const slug = slugify(name, {
                 lower: true,
                 strict: true
             });
-            
+
             const existingCategory = await prisma.category.findUnique({
                 where: { slug }
             });
@@ -136,7 +130,7 @@ const categoryController = {
             const category = await prisma.category.findUnique({
                 where: { id }
             });
-            
+
             if (!category) {
                 return res.status(404).json({ message: 'Category not found' });
             }
@@ -146,7 +140,7 @@ const categoryController = {
                 strict: true
             });
 
-            if(slug !== category.slug) {
+            if (slug !== category.slug) {
                 const existingCategory = await prisma.category.findUnique({
                     where: { slug }
                 });

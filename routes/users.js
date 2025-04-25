@@ -1,12 +1,13 @@
 var express = require('express');
 var router = express.Router();
 const { authenticate } = require('../middlewares/authMiddleware');
+const { isAdmin } = require('../middlewares/adminAuthMiddleware');
 const { PrismaClient } = require('../generated/prisma');
 
 const prisma = new PrismaClient();
 
 /* GET users listing. */
-router.get('/', authenticate, async function(req, res, next) {
+router.get('/', authenticate, isAdmin, async function (req, res, next) {
   try {
     const users = await prisma.user.findMany({
       select: {
@@ -27,7 +28,7 @@ router.get('/', authenticate, async function(req, res, next) {
   }
 });
 
-router.get('/me', authenticate, async function(req, res, next) {
+router.get('/me', authenticate, async function (req, res, next) {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.user.id },
