@@ -75,4 +75,67 @@ const productController = {
         }
     },
 
+    async getProductById(req, res) {
+        try {
+            const { id } = req.params;
+
+            let product = await prisma.product.findUnique({
+                where: { id },
+                include: {
+                    category: true,
+                    user: {
+                        select: {
+                            id: true,
+                            name: true
+                        }
+                    }
+                }
+            });
+
+            if (!product) {
+                product = await prisma.product.findUnique({
+                    where: { slug: id },
+                    include: {
+                        category: true,
+                        user: {
+                            select: {
+                                id: true,
+                                name: true
+                            }
+                        }
+                    }
+                });
+
+                if (!product) {
+                    return res.status(404).json({ message: 'Product not found' });
+                }
+            }
+
+            res.json(product);
+        } catch (e) {
+            console.error('Error fetching product:', e);
+            res.status(500).json({ message: 'Failed to fetch product', error: e.message });
+        }
+    },
+
+    async createProduct(req, res) {
+        try {
+            const {
+                name,
+                category_id,
+                price,
+                quantity,
+                quantity_alert,
+                brand,
+                description,
+                specifications,
+                source,
+                date_arrival,
+                is_rentable,
+                product_picture
+            } = req.body;
+
+
+        }
+    }
 }
