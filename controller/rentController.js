@@ -26,7 +26,7 @@ const rentController = {
                     }
                 },
                 orderBy: {
-                    created_at: 'desc'
+                    id: 'desc'
                 }
             });
 
@@ -104,7 +104,7 @@ const rentController = {
                     }
                 },
                 orderBy: {
-                    created_at: 'desc'
+                    id: 'desc'
                 }
             });
 
@@ -124,9 +124,17 @@ const rentController = {
                 notes,
                 identification_picture,
                 cart_id,
-                start_date,
-                end_date
+                startDate,
+                endDate,
             } = req.body;
+
+            if (!identification_picture) {
+                return res.status(400).json({ message: 'Identification picture is required' });
+            }
+
+            if (!cart_id) {
+                return res.status(400).json({ message: 'Cart ID is required' });
+            }
 
             const cart = await prisma.cart.findUnique({
                 where: { id: cart_id },
@@ -151,23 +159,25 @@ const rentController = {
                 return res.status(400).json({ message: 'Cart is empty' });
             }
 
-            const startDate = new Date(start_date);
-            const endDate = new Date(end_date);
-            const currentDate = new Date();
+            const start_date = new Date(startDate);
+            const end_date = new Date(endDate);
+            const currentDate = new Date().getDate();
 
-            if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+            if (isNaN(start_date.getTime()) || isNaN(end_date.getTime())) {
                 return res.status(400).json({ message: 'Invalid date format' });
             }
 
-            if (startDate < currentDate) {
+            if (start_date < currentDate) {
+                console.log(startDate, currentDate);
                 return res.status(400).json({ message: 'Start date cannot be in the past' });
             }
 
-            if (endDate <= startDate) {
+            if (end_date <= start_date) {
                 return res.status(400).json({ message: 'End date must be after start date' });
             }
 
-            const rentalDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+            const rentalDays = Math.ceil((end_date - start_date) / (1000 * 60 * 60 * 24));
+            console.log(`Rental days: ${rentalDays}`);
             let totalCost = 0;
 
             const orderProducts = [];
@@ -187,6 +197,7 @@ const rentController = {
                 }
 
                 const productCost = item.product.price * rentalDays * item.quantity;
+                console.log(`Product "${item.product.name}" cost for ${rentalDays} days: $${productCost}`);
                 totalCost += productCost;
 
                 orderProducts.push({
@@ -195,6 +206,7 @@ const rentController = {
                     price: item.product.price
                 });
             }
+
 
             const invoiceNumber = `INV-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
@@ -219,8 +231,8 @@ const rentController = {
                             connect: { id: rent.id }
                         },
                         invoice: invoiceNumber,
-                        start_date: startDate,
-                        end_date: endDate,
+                        start_date: start_date,
+                        end_date: end_date,
                         total_cost: totalCost,
                         order_status: 'WAITING',
                         payment_status: 'UNPAID',

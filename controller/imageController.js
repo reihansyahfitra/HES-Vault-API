@@ -1,5 +1,15 @@
 const { PrismaClient } = require('../generated/prisma');
+const path = require('path');
+const fs = require('fs');
+
 const prisma = new PrismaClient();
+
+const addCacheHeaders = (res, maxAge = 86400) => {
+    res.set({
+        'Cache-Control': `public, max-age=${maxAge}`,
+        'Expires': new Date(Date.now() + maxAge * 1000).toUTCString()
+    });
+};
 
 const imageController = {
     async uploadProfilePicture(req, res) {
@@ -8,16 +18,31 @@ const imageController = {
                 return res.status(400).json({ message: 'No image file provided' });
             }
 
-            const imagePath = req.file.path;
+            const imagePath = `/uploads/profile/${req.file.filename}`;
+            const thumbnailPath = req.file.thumbnail;
 
             const updatedUser = await prisma.user.update({
                 where: { id: req.user.id },
                 data: { profile_picture: imagePath }
             });
 
+            const user = await prisma.user.findUnique({
+                where: { id: req.user.id },
+                select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    profile_picture: true
+                }
+            });
+
+            addCacheHeaders(res);
+
             res.json({
                 message: 'Profile picture updated successfully',
-                profile_picture: imagePath
+                profile_picture: imagePath,
+                thumbnail: thumbnailPath,
+                user: user
             });
         } catch (e) {
             console.error('Error uploading profile picture:', e);
@@ -32,7 +57,8 @@ const imageController = {
             }
 
             const { productId } = req.params;
-            const imagePath = req.file.path;
+            const imagePath = `/uploads/product/${req.file.filename}`;
+            const thumbnailPath = req.file.thumbnail;
 
             const product = await prisma.product.findUnique({
                 where: { id: productId },
@@ -52,9 +78,12 @@ const imageController = {
                 data: { product_picture: imagePath }
             });
 
+            addCacheHeaders(res);
+
             res.json({
                 message: 'Product image updated successfully',
-                product_picture: imagePath
+                product_picture: imagePath,
+                thumbnail: thumbnailPath
             });
         } catch (e) {
             console.error('Error uploading product image:', e);
@@ -69,10 +98,20 @@ const imageController = {
             }
 
             const { rentId, docType } = req.params;
-            const imagePath = req.file.path;
+            const imagePath = `/uploads/rent/${req.file.filename}`;
+            const thumbnailPath = req.file.thumbnail;
 
             if (!['before', 'after', 'identification'].includes(docType)) {
                 return res.status(400).json({ message: 'Invalid documentation type' });
+            }
+
+            if (rentId.startsWith('temp-') && docType === 'identification') {
+                addCacheHeaders(res, 14400);
+                return res.json({
+                    message: `Temporary ${docType} documentation uploaded successfully`,
+                    imagePath: imagePath,
+                    thumbnail: req.file.thumbnail
+                });
             }
 
             const rent = await prisma.rent.findUnique({
@@ -106,14 +145,101 @@ const imageController = {
                 data: updateData
             });
 
+            addCacheHeaders(res, 14400);
+
             res.json({
                 message: `${docType} documentation updated successfully`,
-                [docType === 'before' ? 'documentation_before' :
-                    docType === 'after' ? 'documentation_after' : 'identification_picture']: imagePath
+                imagePath: imagePath,
+                thumbnail: req.file.thumbnail
             });
         } catch (e) {
             console.error('Error uploading documentation:', e);
             res.status(500).json({ message: 'Failed to upload documentation', error: e.message });
+        }
+    },
+
+    async updateDocumentationPath(req, res) {
+        try {
+            const { oldPath, newRentId, docType } = req.body;
+
+            if (!oldPath || !newRentId || !docType) {
+                return res.status(400).json({ message: 'Missing required information' });
+            }
+
+            if (!['before', 'after', 'identification'].includes(docType)) {
+                return res.status(400).json({ message: 'Invalid documentation type' });
+            }
+
+            // Check if the rent exists
+            const rent = await prisma.rent.findUnique({
+                where: { id: newRentId }
+            });
+
+            if (!rent) {
+                return res.status(404).json({ message: 'Rent not found' });
+            }
+
+            // Check if the user is authorized to update this rent
+            if (rent.user_id !== req.user.id && req.user.teamId !== 'administrator') {
+                return res.status(403).json({ message: 'Not authorized to update this rent' });
+            }
+
+            // Update the rent with the correct path
+            const updateData = {};
+            switch (docType) {
+                case 'identification':
+                    updateData.identification_picture = oldPath;
+                    break;
+                case 'before':
+                    updateData.documentation_before = oldPath;
+                    break;
+                case 'after':
+                    updateData.documentation_after = oldPath;
+                    break;
+            }
+
+            await prisma.rent.update({
+                where: { id: newRentId },
+                data: updateData
+            });
+
+            res.json({
+                message: 'Documentation path updated successfully',
+                rentId: newRentId,
+                docType: docType,
+                path: oldPath
+            });
+        } catch (e) {
+            console.error('Error updating documentation path:', e);
+            res.status(500).json({ message: 'Failed to update documentation path', error: e.message });
+        }
+    },
+
+    async getImage(req, res) {
+        try {
+            const { type, filename } = req.params;
+            const filePath = path.join(__dirname, '../public/uploads', type, filename);
+
+            if (!fs.existsSync(filePath)) {
+                return res.status(404).send('Image not found');
+            }
+
+            const stats = fs.statSync(filePath);
+            const lastModified = stats.mtime.toUTCString();
+
+            if (req.headers['if-modified-since'] === lastModified) {
+                return res.status(304).end();
+            }
+
+            res.set({
+                'Cache-Control': 'public, max-age=86400',
+                'Last-Modified': lastModified
+            });
+
+            res.sendFile(filePath);
+        } catch (e) {
+            console.error('Error serving image:', e);
+            res.status(500).send('Error serving image');
         }
     }
 };

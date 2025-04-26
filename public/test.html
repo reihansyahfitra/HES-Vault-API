@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HES Vault API Tester</title>
+    <link rel="stylesheet" href="/stylesheets/api-tester.css">
+</head>
+
+<body>
+    <header>
+        <h1>HES Vault API Testing Interface</h1>
+        <div id="authStatus" class="auth-status">Not logged in</div>
+    </header>
+
+    <div class="tabs">
+        <button class="tab-button active" data-tab="auth">Authentication</button>
+        <button class="tab-button" data-tab="users">Users</button>
+        <button class="tab-button" data-tab="categories">Categories</button>
+        <button class="tab-button" data-tab="products">Products</button>
+        <button class="tab-button" data-tab="cart">Cart</button>
+        <button class="tab-button" data-tab="uploads">Image Uploads</button>
+        <button class="tab-button" data-tab="rentals">Rentals/Orders</button>
+    </div>
+
+    <main>
+        <!-- Auth Section -->
+        <section id="auth" class="tab-content active">
+            <h2>Authentication</h2>
+
+            <div class="card">
+                <h3>Login</h3>
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label for="loginEmail">Email:</label>
+                        <input type="email" id="loginEmail" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="loginPassword">Password:</label>
+                        <input type="password" id="loginPassword" required>
+                    </div>
+                    <button type="submit">Login</button>
+                </form>
+                <div id="loginResponse" class="response"></div>
+            </div>
+
+            <div class="card">
+                <h3>Register</h3>
+                <form id="registerForm">
+                    <div class="form-group">
+                        <label for="registerName">Name:</label>
+                        <input type="text" id="registerName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="registerEmail">Email:</label>
+                        <input type="email" id="registerEmail" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="registerPassword">Password:</label>
+                        <input type="password" id="registerPassword" required>
+                    </div>
+                    <button type="submit">Register</button>
+                </form>
+                <div id="registerResponse" class="response"></div>
+            </div>
+
+            <div class="card">
+                <h3>Logout</h3>
+                <button id="logoutButton">Logout</button>
+                <div id="logoutResponse" class="response"></div>
+            </div>
+        </section>
+
+        <!-- Users Section -->
+        <section id="users" class="tab-content">
+            <h2>Users</h2>
+
+            <div class="card">
+                <h3>My Profile</h3>
+                <div id="profileContainer" class="profile-container">
+                    <div class="profile-info">
+                        <button id="getUserProfile">Get My Profile</button>
+                        <div id="userProfileResponse" class="response"></div>
+                    </div>
+                    <div class="profile-image">
+                        <h4>Profile Picture</h4>
+                        <img id="currentProfilePic" src="/images/default-profile.png" alt="Profile Picture">
+                        <p id="profilePicPath" class="image-path"></p>
+                        <button id="refreshProfilePic" class="secondary-button">Refresh Picture</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Get All Users (Admin Only)</h3>
+                <button id="getAllUsers">Get All Users</button>
+                <div id="allUsersResponse" class="response"></div>
+            </div>
+        </section>
+
+        <!-- Categories Section -->
+        <section id="categories" class="tab-content">
+            <h2>Categories</h2>
+
+            <div class="card">
+                <h3>Get All Categories</h3>
+                <button id="getAllCategories">Get All Categories</button>
+                <div id="categoriesResponse" class="response"></div>
+            </div>
+
+            <div class="card">
+                <h3>Create Category (Admin Only)</h3>
+                <form id="createCategoryForm">
+                    <div class="form-group">
+                        <label for="categoryName">Name:</label>
+                        <input type="text" id="categoryName" required>
+                    </div>
+                    <button type="submit">Create Category</button>
+                </form>
+                <div id="createCategoryResponse" class="response"></div>
+            </div>
+        </section>
+
+        <!-- Products Section -->
+        <section id="products" class="tab-content">
+            <h2>Products</h2>
+
+            <div class="card">
+                <h3>Get All Products</h3>
+                <button id="getAllProducts">Get All Products</button>
+                <div id="productsResponse" class="response"></div>
+            </div>
+
+            <div class="card">
+                <h3>Get Product By ID</h3>
+                <form id="getProductForm">
+                    <div class="form-group">
+                        <label for="productId">Product ID or Slug:</label>
+                        <input type="text" id="productId" required>
+                    </div>
+                    <button type="submit">Get Product</button>
+                </form>
+                <div id="getProductResponse" class="response"></div>
+            </div>
+
+            <div class="card">
+                <h3>Create Product (Admin Only)</h3>
+                <form id="createProductForm">
+                    <div class="form-group">
+                        <label for="productName">Name:</label>
+                        <input type="text" id="productName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="productCategory">Category ID:</label>
+                        <input type="text" id="productCategory" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="productPrice">Price:</label>
+                        <input type="number" id="productPrice" step="0.01" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="productQuantity">Quantity:</label>
+                        <input type="number" id="productQuantity" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="productQuantityAlert">Quantity Alert:</label>
+                        <input type="number" id="productQuantityAlert" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="productBrand">Brand:</label>
+                        <input type="text" id="productBrand" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="productDescription">Description:</label>
+                        <textarea id="productDescription" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="productSpecs">Specifications:</label>
+                        <textarea id="productSpecs" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="productSource">Source:</label>
+                        <input type="text" id="productSource" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="productArrival">Arrival Date:</label>
+                        <input type="date" id="productArrival" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="productRentable">Is Rentable:</label>
+                        <input type="checkbox" id="productRentable">
+                    </div>
+                    <button type="submit">Create Product</button>
+                </form>
+                <div id="createProductResponse" class="response"></div>
+            </div>
+        </section>
+
+        <!-- Cart Section -->
+        <section id="cart" class="tab-content">
+            <h2>Cart</h2>
+
+            <div class="card">
+                <h3>Get Cart</h3>
+                <button id="getCart">Get My Cart</button>
+                <div id="cartResponse" class="response"></div>
+            </div>
+
+            <div class="card">
+                <h3>Add to Cart</h3>
+                <form id="addToCartForm">
+                    <div class="form-group">
+                        <label for="addToCartProductId">Product ID:</label>
+                        <input type="text" id="addToCartProductId" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="addToCartQuantity">Quantity:</label>
+                        <input type="number" id="addToCartQuantity" min="1" value="1" required>
+                    </div>
+                    <button type="submit">Add to Cart</button>
+                </form>
+                <div id="addToCartResponse" class="response"></div>
+            </div>
+
+            <div class="card">
+                <h3>Update Cart Item</h3>
+                <form id="updateCartItemForm">
+                    <div class="form-group">
+                        <label for="updateCartItemId">Item ID:</label>
+                        <input type="text" id="updateCartItemId" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="updateCartQuantity">New Quantity:</label>
+                        <input type="number" id="updateCartQuantity" min="0" required>
+                    </div>
+                    <button type="submit">Update Item</button>
+                </form>
+                <div id="updateCartResponse" class="response"></div>
+            </div>
+
+            <div class="card">
+                <h3>Remove Cart Item</h3>
+                <form id="removeCartItemForm">
+                    <div class="form-group">
+                        <label for="removeCartItemId">Item ID:</label>
+                        <input type="text" id="removeCartItemId" required>
+                    </div>
+                    <button type="submit">Remove Item</button>
+                </form>
+                <div id="removeCartResponse" class="response"></div>
+            </div>
+
+            <div class="card">
+                <h3>Clear Cart</h3>
+                <button id="clearCart">Clear Cart</button>
+                <div id="clearCartResponse" class="response"></div>
+            </div>
+        </section>
+
+        <!-- Image Uploads Section -->
+        <section id="uploads" class="tab-content">
+            <h2>Image Uploads</h2>
+
+            <div class="card">
+                <h3>Upload Profile Picture</h3>
+                <form id="profilePicForm">
+                    <div class="form-group">
+                        <label for="profilePic">Select Image:</label>
+                        <input type="file" id="profilePic" accept="image/*" required>
+                    </div>
+                    <div class="preview">
+                        <img id="profilePicPreview" style="display: none;">
+                    </div>
+                    <button type="submit">Upload</button>
+                </form>
+                <div id="profilePicResponse" class="response"></div>
+            </div>
+
+            <div class="card">
+                <h3>Upload Product Image</h3>
+                <form id="productImageForm">
+                    <div class="form-group">
+                        <label for="productImageId">Product ID:</label>
+                        <input type="text" id="productImageId" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="productImage">Select Image:</label>
+                        <input type="file" id="productImage" accept="image/*" required>
+                    </div>
+                    <div class="preview">
+                        <img id="productImagePreview" style="display: none;">
+                    </div>
+                    <button type="submit">Upload</button>
+                </form>
+                <div id="productImageResponse" class="response"></div>
+            </div>
+
+            <div class="card">
+                <h3>Upload Rent Documentation</h3>
+                <form id="rentDocForm">
+                    <div class="form-group">
+                        <label for="rentId">Rent ID:</label>
+                        <input type="text" id="rentId" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="docType">Document Type:</label>
+                        <select id="docType" required>
+                            <option value="before">Before Documentation</option>
+                            <option value="after">After Documentation</option>
+                            <option value="identification">Identification</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="rentDoc">Select Image:</label>
+                        <input type="file" id="rentDoc" accept="image/*" required>
+                    </div>
+                    <div class="preview">
+                        <img id="rentDocPreview" style="display: none;">
+                    </div>
+                    <button type="submit">Upload</button>
+                </form>
+                <div id="rentDocResponse" class="response"></div>
+            </div>
+        </section>
+
+        <!-- Rentals/Orders Section -->
+        <section id="rentals" class="tab-content">
+            <h2>Rentals & Orders</h2>
+
+            <div class="card">
+                <h3>Create Rent</h3>
+                <form id="createRentForm">
+                    <div class="form-group">
+                        <label for="rentIdentification">Identification:</label>
+                        <input type="text" id="rentIdentification" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="rentPhone">Phone:</label>
+                        <input type="text" id="rentPhone" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="rentNotes">Notes:</label>
+                        <textarea id="rentNotes"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="rentStartDate">Start Date:</label>
+                        <input type="date" id="rentStartDate" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="rentEndDate">End Date:</label>
+                        <input type="date" id="rentEndDate" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="rentIdDoc">Identification Document:</label>
+                        <input type="file" id="rentIdDoc" accept="image/*" required>
+                        <div class="preview">
+                            <img id="rentIdDocPreview" style="display: none;">
+                        </div>
+                    </div>
+                    <button type="submit">Create Rent</button>
+                </form>
+                <div id="createRentResponse" class="response"></div>
+            </div>
+
+            <div class="card">
+                <h3>Get My Rentals</h3>
+                <button id="getMyRentals">Get My Rentals</button>
+                <div id="myRentalsResponse" class="response"></div>
+            </div>
+
+            <div class="card">
+                <h3>Get All Rentals (Admin)</h3>
+                <button id="getAllRentals">Get All Rentals</button>
+                <div id="allRentalsResponse" class="response"></div>
+            </div>
+
+            <div class="card">
+                <h3>Get Rental By ID</h3>
+                <form id="getRentForm">
+                    <div class="form-group">
+                        <label for="getRentId">Rent ID:</label>
+                        <input type="text" id="getRentId" required>
+                    </div>
+                    <button type="submit">Get Rental</button>
+                </form>
+                <div id="getRentResponse" class="response"></div>
+            </div>
+
+            <div class="card">
+                <h3>Update Rental Documentation</h3>
+                <form id="updateRentDocForm">
+                    <div class="form-group">
+                        <label for="updateRentId">Rent ID:</label>
+                        <input type="text" id="updateRentId" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="updateDocType">Document Type:</label>
+                        <select id="updateDocType" required>
+                            <option value="before">Before Documentation</option>
+                            <option value="after">After Documentation</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="updateRentDoc">Select Image:</label>
+                        <input type="file" id="updateRentDoc" accept="image/*" required>
+                    </div>
+                    <div class="preview">
+                        <img id="updateRentDocPreview" style="display: none;">
+                    </div>
+                    <button type="submit">Upload Documentation</button>
+                </form>
+                <div id="updateRentDocResponse" class="response"></div>
+            </div>
+
+            <div class="card">
+                <h3>Update Order Status (Admin)</h3>
+                <form id="updateOrderStatusForm">
+                    <div class="form-group">
+                        <label for="updateOrderId">Order ID:</label>
+                        <input type="text" id="updateOrderId" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="orderStatus">Order Status:</label>
+                        <select id="orderStatus">
+                            <option value="">Don't change</option>
+                            <option value="WAITING">WAITING</option>
+                            <option value="APPROVED">APPROVED</option>
+                            <option value="REJECTED">REJECTED</option>
+                            <option value="ONRENT">ONRENT</option>
+                            <option value="OVERDUE">OVERDUE</option>
+                            <option value="RETURNED">RETURNED</option>
+                            <option value="CANCELLED">CANCELLED</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="paymentStatus">Payment Status:</label>
+                        <select id="paymentStatus">
+                            <option value="">Don't change</option>
+                            <option value="UNPAID">UNPAID</option>
+                            <option value="PAID">PAID</option>
+                        </select>
+                    </div>
+                    <button type="submit">Update Status</button>
+                </form>
+                <div id="updateOrderResponse" class="response"></div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>HES Vault API Tester © 2025</p>
+    </footer>
+
+    <script src="/javascripts/api-tester.js"></script>
+</body>
+
+</html>
