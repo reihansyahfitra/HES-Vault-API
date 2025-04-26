@@ -10,7 +10,10 @@ var authRouter = require('./routes/auth');
 var categoriesRouter = require('./routes/categories');
 var productRouter = require('./routes/product');
 var cartRouter = require('./routes/cart');
+var ordersRouter = require('./routes/orders');
+var rentRouter = require('./routes/rent');
 const { cleanupExpiredTokens } = require('./utils/tokenCleanups');
+const { detectOverdueRentals } = require('./utils/overdueDetector');
 
 var app = express();
 
@@ -30,6 +33,8 @@ app.use('/auth', authRouter);
 app.use('/categories', categoriesRouter);
 app.use('/products', productRouter);
 app.use('/cart', cartRouter);
+app.use('/orders', ordersRouter);
+app.use('/rent', rentRouter);
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
@@ -49,5 +54,8 @@ app.use(function (err, req, res, next) {
 
 setInterval(cleanupExpiredTokens, 86400000);
 cleanupExpiredTokens();
+
+setInterval(detectOverdueRentals, 3600000);
+detectOverdueRentals();
 
 module.exports = app;
