@@ -26,7 +26,7 @@ const configureCors = () => {
     //     maxAge: 86400
     // });
     return cors({
-        origin: "http://localhost:3000",
+        origin: true,
         methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
         allowedHeaders: ["Content-Type", "Authorization"],
         credentials: true
