@@ -16,8 +16,8 @@ const authController = {
                 where: { email }
             });
 
-            if(existingUser){
-                return res.status(400).json({ message: 'User with this email already exists'});
+            if (existingUser) {
+                return res.status(400).json({ message: 'User with this email already exists' });
             }
 
             const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
@@ -26,7 +26,7 @@ const authController = {
                 where: { name: 'Regular' }
             });
 
-            if(!regularTeam){
+            if (!regularTeam) {
                 regularTeam = await prisma.team.create({
                     data: {
                         name: 'Regular',
@@ -63,7 +63,7 @@ const authController = {
             });
         } catch (e) {
             console.error('Registration error: ', e);
-            res.status(500).json({ message: 'Failed to register user', error: e.message})
+            res.status(500).json({ message: 'Failed to register user', error: e.message })
         }
     },
 
@@ -89,7 +89,7 @@ const authController = {
 
             const passwordMatch = await bcrypt.compare(password, user.password);
 
-            if(!passwordMatch) {
+            if (!passwordMatch) {
                 return res.status(401).json({ message: 'Invalid email or password' });
             }
 
@@ -114,8 +114,8 @@ const authController = {
                 token
             });
         } catch (e) {
-            console.error('Login error:', error);
-            res.status(500).json({ message: 'Failed to login', error: error.message });
+            console.error('Login error:', e);
+            res.status(500).json({ message: 'Failed to login', error: e.message });
         }
     },
 
@@ -123,7 +123,7 @@ const authController = {
         try {
             const header = req.headers.authorization;
 
-            if(!header || !header.startsWith('Bearer ')) {
+            if (!header || !header.startsWith('Bearer ')) {
                 return res.status(400).json({ message: 'No token provided' });
             }
 
@@ -141,10 +141,10 @@ const authController = {
                     data: {
                         token: token,
                         tokenHash: tokenHash,
-                        expiresAt: new Date(decoded.exp*1000)
+                        expiresAt: new Date(decoded.exp * 1000)
                     }
                 });
-            return res.status(200).json({ message: 'Logged out successfully' });
+                return res.status(200).json({ message: 'Logged out successfully' });
             } catch (e) {
                 if (r instanceof jwt.JsonWebTokenError) {
                     const oneYear = new Date();
@@ -161,8 +161,8 @@ const authController = {
                 throw e;
             }
         } catch (e) {
-            console.error('Logout error:', error);
-            res.status(500).json({ message: 'Failed to logout', error: error.message });
+            console.error('Logout error:', e);
+            res.status(500).json({ message: 'Failed to logout', error: e.message });
         }
     }
 };

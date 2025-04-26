@@ -21,8 +21,8 @@ const categoryController = {
 
             res.json(categories);
         } catch (e) {
-            console.error('Error fetching categories:', error);
-            res.status(500).json({ message: 'Failed to fetch categories', error: error.message });
+            console.error('Error fetching categories:', e);
+            res.status(500).json({ message: 'Failed to fetch categories', error: e.message });
         }
     },
 
@@ -82,8 +82,8 @@ const categoryController = {
 
             res.json(category);
         } catch (e) {
-            console.error('Error fetching category:', error);
-            res.status(500).json({ message: 'Failed to fetch category', error: error.message });
+            console.error('Error fetching category:', e);
+            res.status(500).json({ message: 'Failed to fetch category', error: e.message });
         }
     },
 
@@ -113,8 +113,8 @@ const categoryController = {
 
             res.status(201).json(newCategory);
         } catch (e) {
-            console.error('Error creating category:', error);
-            res.status(500).json({ message: 'Failed to create category', error: error.message });
+            console.error('Error creating category:', e);
+            res.status(500).json({ message: 'Failed to create category', error: e.message });
         }
     },
 
@@ -159,9 +159,9 @@ const categoryController = {
             });
 
             res.json(updatedCategory);
-        } catch (error) {
-            console.error('Error updating category:', error);
-            res.status(500).json({ message: 'Failed to update category', error: error.message });
+        } catch (e) {
+            console.error('Error updating category:', e);
+            res.status(500).json({ message: 'Failed to update category', error: e.message });
         }
     },
 
@@ -193,8 +193,8 @@ const categoryController = {
 
             res.json({ message: 'Category deleted successfully' });
         } catch (e) {
-            console.error('Error deleting category:', error);
-            res.status(500).json({ message: 'Failed to delete category', error: error.message });
+            console.error('Error deleting category:', e);
+            res.status(500).json({ message: 'Failed to delete category', error: e.message });
         }
     }
 };
