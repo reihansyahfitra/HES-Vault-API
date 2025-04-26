@@ -135,7 +135,55 @@ const productController = {
                 product_picture
             } = req.body;
 
+            const slug = slugify(name, {
+                lower: true,
+                strict: true
+            });
 
+            const existingProduct = await prisma.product.findUnique({
+                where: { slug }
+            });
+
+            if (existingProduct) {
+                return res.status(400).json({ message: 'A product with this name already exists' });
+            }
+
+            const newProduct = await prisma.product.create({
+                data: {
+                    name,
+                    slug,
+                    price: parseFloat(price),
+                    quantity: parseInt(quantity),
+                    quantity_alert: parseInt(quantity_alert),
+                    brand,
+                    description,
+                    specifications,
+                    source,
+                    date_arrival: new Date(date_arrival),
+                    is_rentable: Boolean(is_rentable),
+                    product_picture,
+                    user: {
+                        connect: { id: req.user.id }
+                    },
+                    category: {
+                        connect: { id: category_id }
+                    }
+                },
+                include: {
+                    category: true,
+                    user: {
+                        select: {
+                            id: true,
+                            name: true
+                        }
+                    }
+                }
+            });
+
+            res.status(201).json(newProduct);
+        } catch (e) {
+            console.error('Error creating product:', e);
+            res.status(500).json({ message: 'Failed to create product', error: e.message });
         }
     }
 }
