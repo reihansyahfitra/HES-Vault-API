@@ -1,0 +1,360 @@
+const { PrismaClient } = require('../generated/prisma');
+const { v4: uuidv4 } = require('uuid');
+
+const prisma = new PrismaClient();
+
+const rentController = {
+    async getAllRents(req, res) {
+        try {
+            const rents = await prisma.rent.findMany({
+                include: {
+                    user: {
+                        select: {
+                            id: true,
+                            name: true,
+                            email: true
+                        }
+                    },
+                    order: {
+                        include: {
+                            products: {
+                                include: {
+                                    product: true
+                                }
+                            }
+                        }
+                    }
+                },
+                orderBy: {
+                    created_at: 'desc'
+                }
+            });
+
+            res.json(rents);
+        } catch (e) {
+            console.error('Error fetching rents:', e);
+            res.status(500).json({ message: 'Failed to fetch rents', error: e.message });
+        }
+    },
+
+    async getRentById(req, res) {
+        try {
+            const { id } = req.params;
+
+            const rent = await prisma.rent.findUnique({
+                where: { id },
+                include: {
+                    user: {
+                        select: {
+                            id: true,
+                            name: true,
+                            email: true
+                        }
+                    },
+                    order: {
+                        include: {
+                            products: {
+                                include: {
+                                    product: true
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            if (!rent) {
+                return res.status(404).json({ message: 'Rent not found' });
+            }
+
+            if (rent.user_id !== req.user.id && req.user.teamId !== 'administrator') {
+                return res.status(403).json({ message: 'Not authorized to view this rent' });
+            }
+
+            res.json(rent);
+        } catch (e) {
+            console.error('Error fetching rent:', e);
+            res.status(500).json({ message: 'Failed to fetch rent', error: e.message });
+        }
+    },
+
+    async getRentsByUser(req, res) {
+        try {
+            const userId = req.user.id;
+
+            const rents = await prisma.rent.findMany({
+                where: { user_id: userId },
+                include: {
+                    order: {
+                        include: {
+                            products: {
+                                include: {
+                                    product: {
+                                        select: {
+                                            id: true,
+                                            name: true,
+                                            price: true,
+                                            brand: true,
+                                            product_picture: true
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                orderBy: {
+                    created_at: 'desc'
+                }
+            });
+
+            res.json(rents);
+        } catch (e) {
+            console.error('Error fetching user rents:', e);
+            res.status(500).json({ message: 'Failed to fetch user rents', error: e.message });
+        }
+    },
+
+    async createRent(req, res) {
+        try {
+            const userId = req.user.id;
+            const {
+                identification,
+                phone,
+                notes,
+                identification_picture,
+                cart_id,
+                start_date,
+                end_date
+            } = req.body;
+
+            const cart = await prisma.cart.findUnique({
+                where: { id: cart_id },
+                include: {
+                    cart_items: {
+                        include: {
+                            product: true
+                        }
+                    }
+                }
+            });
+
+            if (!cart) {
+                return res.status(404).json({ message: 'Cart not found' });
+            }
+
+            if (cart.user_id !== userId) {
+                return res.status(403).json({ message: 'Not authorized to use this cart' });
+            }
+
+            if (cart.cart_items.length === 0) {
+                return res.status(400).json({ message: 'Cart is empty' });
+            }
+
+            const startDate = new Date(start_date);
+            const endDate = new Date(end_date);
+            const currentDate = new Date();
+
+            if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+                return res.status(400).json({ message: 'Invalid date format' });
+            }
+
+            if (startDate < currentDate) {
+                return res.status(400).json({ message: 'Start date cannot be in the past' });
+            }
+
+            if (endDate <= startDate) {
+                return res.status(400).json({ message: 'End date must be after start date' });
+            }
+
+            const rentalDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+            let totalCost = 0;
+
+            const orderProducts = [];
+            for (const item of cart.cart_items) {
+                if (!item.product.is_rentable) {
+                    return res.status(400).json({
+                        message: `Product "${item.product.name}" is not available for rent`
+                    });
+                }
+
+                if (item.product.quantity < item.quantity) {
+                    return res.status(400).json({
+                        message: `Not enough stock for product "${item.product.name}"`,
+                        available: item.product.quantity,
+                        requested: item.quantity
+                    });
+                }
+
+                const productCost = item.product.price * rentalDays * item.quantity;
+                totalCost += productCost;
+
+                orderProducts.push({
+                    product_id: item.product_id,
+                    quantity: item.quantity,
+                    price: item.product.price
+                });
+            }
+
+            const invoiceNumber = `INV-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+
+            const result = await prisma.$transaction(async (prisma) => {
+                const rent = await prisma.rent.create({
+                    data: {
+                        id: uuidv4(),
+                        user: {
+                            connect: { id: userId }
+                        },
+                        identification,
+                        phone,
+                        notes,
+                        identification_picture
+                    }
+                });
+
+                const order = await prisma.order.create({
+                    data: {
+                        id: uuidv4(),
+                        rent: {
+                            connect: { id: rent.id }
+                        },
+                        invoice: invoiceNumber,
+                        start_date: startDate,
+                        end_date: endDate,
+                        total_cost: totalCost,
+                        order_status: 'WAITING',
+                        payment_status: 'UNPAID',
+                        products: {
+                            create: orderProducts.map(product => ({
+                                product: {
+                                    connect: { id: product.product_id }
+                                },
+                                quantity: product.quantity,
+                                price: product.price
+                            }))
+                        }
+                    },
+                    include: {
+                        products: {
+                            include: {
+                                product: true
+                            }
+                        }
+                    }
+                });
+
+                for (const item of cart.cart_items) {
+                    await prisma.product.update({
+                        where: { id: item.product_id },
+                        data: {
+                            quantity: {
+                                decrement: item.quantity
+                            }
+                        }
+                    });
+                }
+
+                await prisma.cartOnItem.deleteMany({
+                    where: {
+                        cart_id: cart.id
+                    }
+                });
+
+                return { rent, order };
+            });
+
+            res.status(201).json({
+                message: 'Rent and order created successfully',
+                rent: result.rent,
+                order: result.order
+            });
+        } catch (e) {
+            console.error('Error creating rent and order:', e);
+            res.status(500).json({ message: 'Failed to create rent and order', error: e.message });
+        }
+    },
+
+    async updateRentDocumentationBefore(req, res) {
+        try {
+            const { id } = req.params;
+            const { documentation_before } = req.body;
+
+            const rent = await prisma.rent.findUnique({
+                where: { id },
+                include: { order: true }
+            });
+
+            if (!rent) {
+                return res.status(404).json({ message: 'Rent not found' });
+            }
+
+            const updatedRent = await prisma.rent.update({
+                where: { id },
+                data: {
+                    documentation_before
+                },
+                include: {
+                    user: {
+                        select: {
+                            id: true,
+                            name: true,
+                            email: true
+                        }
+                    },
+                    order: true
+                }
+            });
+
+            res.json({
+                message: 'Rent documentation updated successfully',
+                rent: updatedRent
+            });
+        } catch (e) {
+            console.error('Error updating rent documentation:', e);
+            res.status(500).json({ message: 'Failed to update rent documentation', error: e.message });
+        }
+    },
+
+    async updateRentDocumentationAfter(req, res) {
+        try {
+            const { id } = req.params;
+            const { documentation_after } = req.body;
+
+            const rent = await prisma.rent.findUnique({
+                where: { id },
+                include: { order: true }
+            });
+
+            if (!rent) {
+                return res.status(404).json({ message: 'Rent not found' });
+            }
+
+            const updatedRent = await prisma.rent.update({
+                where: { id },
+                data: {
+                    documentation_after
+                },
+                include: {
+                    user: {
+                        select: {
+                            id: true,
+                            name: true,
+                            email: true
+                        }
+                    },
+                    order: true
+                }
+            });
+
+            res.json({
+                message: 'Rent documentation updated successfully',
+                rent: updatedRent
+            });
+        } catch (e) {
+            console.error('Error updating rent documentation:', e);
+            res.status(500).json({ message: 'Failed to update rent documentation', error: e.message });
+        }
+    }
+};
+
+module.exports = rentController;

@@ -299,18 +299,18 @@ exports.Prisma.CartOnItemOrderByRelevanceFieldEnum = {
   product_id: 'product_id'
 };
 exports.OrderStatus = exports.$Enums.OrderStatus = {
-  PENDING: 'PENDING',
-  PROCESSING: 'PROCESSING',
-  SHIPPED: 'SHIPPED',
-  COMPLETED: 'COMPLETED',
-  CANCELLED: 'CANCELLED'
+  APPROVED: 'APPROVED',
+  ONRENT: 'ONRENT',
+  OVERDUE: 'OVERDUE',
+  WAITING: 'WAITING',
+  REJECTED: 'REJECTED',
+  CANCELLED: 'CANCELLED',
+  RETURNED: 'RETURNED'
 };
 
 exports.PaymentStatus = exports.$Enums.PaymentStatus = {
-  PENDING: 'PENDING',
-  PAID: 'PAID',
-  FAILED: 'FAILED',
-  REFUNDED: 'REFUNDED'
+  UNPAID: 'UNPAID',
+  PAID: 'PAID'
 };
 
 exports.Prisma.ModelName = {

@@ -69,21 +69,21 @@ export type CartOnItem = $Result.DefaultSelection<Prisma.$CartOnItemPayload>
  */
 export namespace $Enums {
   export const OrderStatus: {
-  PENDING: 'PENDING',
-  PROCESSING: 'PROCESSING',
-  SHIPPED: 'SHIPPED',
-  COMPLETED: 'COMPLETED',
-  CANCELLED: 'CANCELLED'
+  APPROVED: 'APPROVED',
+  ONRENT: 'ONRENT',
+  OVERDUE: 'OVERDUE',
+  WAITING: 'WAITING',
+  REJECTED: 'REJECTED',
+  CANCELLED: 'CANCELLED',
+  RETURNED: 'RETURNED'
 };
 
 export type OrderStatus = (typeof OrderStatus)[keyof typeof OrderStatus]
 
 
 export const PaymentStatus: {
-  PENDING: 'PENDING',
-  PAID: 'PAID',
-  FAILED: 'FAILED',
-  REFUNDED: 'REFUNDED'
+  UNPAID: 'UNPAID',
+  PAID: 'PAID'
 };
 
 export type PaymentStatus = (typeof PaymentStatus)[keyof typeof PaymentStatus]
