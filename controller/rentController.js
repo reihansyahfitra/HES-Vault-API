@@ -7,7 +7,30 @@ const prisma = new PrismaClient();
 const rentController = {
     async getAllRents(req, res) {
         try {
+            const { status, search, page = 1, limit = 10 } = req.query;
+            const skip = (page - 1) * limit;
+
+            const where = {};
+
+            if (status) {
+                where.order = {
+                    order_status: status
+                };
+            }
+
+            if (search) {
+                where.OR = [
+                    { id: { contains: search, mode: 'insensitive' } },
+                    { identification: { contains: search, mode: 'insensitive' } },
+                    { user: { name: { contains: search, mode: 'insensitive' } } },
+                    { order: { products: { some: { product: { name: { contains: search, mode: 'insensitive' } } } } } }
+                ];
+            }
+
+            const total = await prisma.rent.count({ where });
+
             const rents = await prisma.rent.findMany({
+                where,
                 include: {
                     user: {
                         select: {
@@ -26,12 +49,22 @@ const rentController = {
                         }
                     }
                 },
-                orderBy: {
-                    id: 'desc'
-                }
+                orderBy: { created_at: 'desc' },
+                skip,
+                take: parseInt(limit)
             });
 
-            res.json(rents);
+            const pages = Math.ceil(total / limit);
+
+            res.json({
+                data: rents,
+                pagination: {
+                    total,
+                    page: parseInt(page),
+                    pages,
+                    limit: parseInt(limit)
+                }
+            });
         } catch (e) {
             console.error('Error fetching rents:', e);
             res.status(500).json({ message: 'Failed to fetch rents', error: e.message });
@@ -41,6 +74,18 @@ const rentController = {
     async getRentById(req, res) {
         try {
             const { id } = req.params;
+
+            const userId = req.user.id;
+            const currentUser = await prisma.user.findUnique({
+                where: { id: userId },
+                include: { team: true }
+            });
+
+            if (!currentUser) {
+                return res.status(401).json({ message: 'User not found' });
+            }
+
+            const isAdmin = currentUser.team?.slug === 'administrator';
 
             const rent = await prisma.rent.findUnique({
                 where: { id },
@@ -68,7 +113,7 @@ const rentController = {
                 return res.status(404).json({ message: 'Rent not found' });
             }
 
-            if (rent.user_id !== req.user.id && req.user.teamId !== 'administrator') {
+            if (rent.user_id !== userId && !isAdmin) {
                 return res.status(403).json({ message: 'Not authorized to view this rent' });
             }
 
@@ -82,9 +127,29 @@ const rentController = {
     async getRentsByUser(req, res) {
         try {
             const userId = req.user.id;
+            const { status, search, page = 1, limit = 10 } = req.query;
+            const skip = (page - 1) * limit;
+
+            const where = { user_id: userId };
+
+            if (status) {
+                where.order = {
+                    order_status: status
+                };
+            }
+
+            if (search) {
+                where.OR = [
+                    { id: { contains: search, mode: 'insensitive' } },
+                    { identification: { contains: search, mode: 'insensitive' } },
+                    { order: { products: { some: { product: { name: { contains: search, mode: 'insensitive' } } } } } }
+                ];
+            }
+
+            const total = await prisma.rent.count({ where });
 
             const rents = await prisma.rent.findMany({
-                where: { user_id: userId },
+                where,
                 include: {
                     order: {
                         include: {
@@ -104,12 +169,22 @@ const rentController = {
                         }
                     }
                 },
-                orderBy: {
-                    id: 'desc'
-                }
+                orderBy: { created_at: 'desc' },
+                skip,
+                take: parseInt(limit)
             });
 
-            res.json(rents);
+            const pages = Math.ceil(total / limit);
+
+            res.json({
+                data: rents,
+                pagination: {
+                    total,
+                    page: parseInt(page),
+                    pages,
+                    limit: parseInt(limit)
+                }
+            });
         } catch (e) {
             console.error('Error fetching user rents:', e);
             res.status(500).json({ message: 'Failed to fetch user rents', error: e.message });
