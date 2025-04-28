@@ -1,6 +1,8 @@
 const { PrismaClient } = require('../generated/prisma');
 const path = require('path');
-const fs = require('fs');
+const fs = require('fs').promises;
+const fsSync = require('fs');
+const ImageCleanupService = require('../utils/imageCleanup');
 
 const prisma = new PrismaClient();
 
@@ -21,12 +23,7 @@ const imageController = {
             const imagePath = `/uploads/profile/${req.file.filename}`;
             const thumbnailPath = req.file.thumbnail;
 
-            const updatedUser = await prisma.user.update({
-                where: { id: req.user.id },
-                data: { profile_picture: imagePath }
-            });
-
-            const user = await prisma.user.findUnique({
+            const currentUser = await prisma.user.findUnique({
                 where: { id: req.user.id },
                 select: {
                     id: true,
@@ -36,13 +33,25 @@ const imageController = {
                 }
             });
 
+            if (currentUser.profile_picture) {
+                await ImageCleanupService.deleteImage(currentUser.profile_picture);
+            }
+
+            const updatedUser = await prisma.user.update({
+                where: { id: req.user.id },
+                data: { profile_picture: imagePath }
+            });
+
             addCacheHeaders(res);
 
             res.json({
                 message: 'Profile picture updated successfully',
                 profile_picture: imagePath,
                 thumbnail: thumbnailPath,
-                user: user
+                user: {
+                    ...currentUser,
+                    profile_picture: imagePath
+                }
             });
         } catch (e) {
             console.error('Error uploading profile picture:', e);
@@ -69,8 +78,12 @@ const imageController = {
                 return res.status(404).json({ message: 'Product not found' });
             }
 
-            if (product.user_id !== req.user.id && req.user.teamId !== 'administrator') {
+            if (product.user_id !== req.user.id && req.user.team_id !== 'administrator') {
                 return res.status(403).json({ message: 'Not authorized to update this product' });
+            }
+
+            if (product.product_picture) {
+                await ImageCleanupService.deleteImage(product.product_picture);
             }
 
             const updatedProduct = await prisma.product.update({
@@ -127,17 +140,26 @@ const imageController = {
                 return res.status(403).json({ message: 'Not authorized to update this documentation' });
             }
 
+            let previousImagePath = null;
             const updateData = {};
+
             switch (docType) {
                 case 'before':
+                    previousImagePath = rent.documentation_before;
                     updateData.documentation_before = imagePath;
                     break;
                 case 'after':
+                    previousImagePath = rent.documentation_after;
                     updateData.documentation_after = imagePath;
                     break;
                 case 'identification':
+                    previousImagePath = rent.identification_picture;
                     updateData.identification_picture = imagePath;
                     break;
+            }
+
+            if (previousImagePath) {
+                await ImageCleanupService.deleteImage(previousImagePath);
             }
 
             const updatedRent = await prisma.rent.update({
@@ -180,22 +202,30 @@ const imageController = {
             }
 
             // Check if the user is authorized to update this rent
-            if (rent.user_id !== req.user.id && req.user.teamId !== 'administrator') {
+            if (rent.user_id !== req.user.id && req.user.team_id !== 'administrator') {
                 return res.status(403).json({ message: 'Not authorized to update this rent' });
             }
 
             // Update the rent with the correct path
+            let previousImagePath = null;
             const updateData = {};
             switch (docType) {
                 case 'identification':
+                    previousImagePath = rent.identification_picture;
                     updateData.identification_picture = oldPath;
                     break;
                 case 'before':
+                    previousImagePath = rent.documentation_before;
                     updateData.documentation_before = oldPath;
                     break;
                 case 'after':
+                    previousImagePath = rent.documentation_after;
                     updateData.documentation_after = oldPath;
                     break;
+            }
+
+            if (previousImagePath && previousImagePath !== oldPath) {
+                await ImageCleanupService.deleteImage(previousImagePath);
             }
 
             await prisma.rent.update({
@@ -220,11 +250,11 @@ const imageController = {
             const { type, filename } = req.params;
             const filePath = path.join(__dirname, '../public/uploads', type, filename);
 
-            if (!fs.existsSync(filePath)) {
+            if (!fsSync.existsSync(filePath)) {
                 return res.status(404).send('Image not found');
             }
 
-            const stats = fs.statSync(filePath);
+            const stats = fsSync.statSync(filePath);
             const lastModified = stats.mtime.toUTCString();
 
             if (req.headers['if-modified-since'] === lastModified) {

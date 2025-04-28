@@ -1,4 +1,5 @@
 const { PrismaClient } = require('../generated/prisma');
+const ImageCleanupService = require('../utils/imageCleanup');
 const slugify = require('slugify');
 
 const prisma = new PrismaClient();
@@ -9,6 +10,7 @@ const productController = {
             const {
                 search,
                 category,
+                lowStock,
                 page = 1,
                 limit = 10,
                 sort = 'name',
@@ -31,6 +33,12 @@ const productController = {
             if (category) {
                 where.category = {
                     slug: category
+                };
+            }
+
+            if (lowStock === 'true' || lowStock === true) {
+                where.quantity = {
+                    lte: prisma.product.fields.quantity_alert
                 };
             }
 
@@ -57,6 +65,8 @@ const productController = {
                 skip,
                 take
             });
+
+            console.log('Fetched products:', products);
 
             const total = await prisma.product.count({ where });
 
@@ -279,7 +289,7 @@ const productController = {
                 return res.status(404).json({ message: 'Product not found' });
             }
 
-            if (product.user_id !== req.user.id && req.user.teamId !== 'administrator') {
+            if (product.user_id !== req.user.id && req.user.team_id !== 'administrator') {
                 return res.status(403).json({ message: 'Not authorized to delete this product' });
             }
 
@@ -294,9 +304,15 @@ const productController = {
                 });
             }
 
+            const imagePath = product.product_picture;
+
             await prisma.product.delete({
                 where: { id }
             });
+
+            if (imagePath) {
+                await ImageCleanupService.deleteImage(imagePath);
+            }
 
             res.json({ message: 'Product deleted successfully' });
         } catch (e) {

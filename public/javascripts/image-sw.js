@@ -6,6 +6,8 @@ const FILES_TO_CACHE = [
     '/placeholder.webp'
 ];
 
+let placeholderFetchFailed = false;
+
 self.addEventListener('install', event => {
     event.waitUntil(
         caches.open(CACHE_NAME)
@@ -34,6 +36,10 @@ self.addEventListener('fetch', event => {
         return;
     }
 
+    if (url.pathname.includes('placeholder.webp')) {
+        return;
+    }
+
     event.respondWith(
         caches.open(CACHE_NAME).then(cache => {
             return cache.match(event.request).then(cachedResponse => {
@@ -57,8 +63,25 @@ self.addEventListener('fetch', event => {
                     }
                     return networkResponse;
                 }).catch(() => {
-                    // If fetch fails, return placeholder image
-                    return caches.match('/placeholder.webp');
+                    if (!placeholderFetchFailed) {
+                        placeholderFetchFailed = true;
+                        return fetch('/placeholder.webp').then(res => {
+                            placeholderFetchFailed = false;
+                            return res;
+                        }).catch(() => {
+                            placeholderFetchFailed = false;
+                            return new Response('Image not found', {
+                                status: 404,
+                                statusText: 'Not Found'
+                            });
+                        });
+                    } else {
+                        // Return a simple 404 response to break the loop
+                        return new Response('Image not found', {
+                            status: 404,
+                            statusText: 'Not Found'
+                        });
+                    }
                 });
             });
         })

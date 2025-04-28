@@ -1,5 +1,6 @@
 const { PrismaClient } = require('../generated/prisma');
 const { v4: uuidv4 } = require('uuid');
+const ImageCleanupService = require('../utils/imageCleanup');
 
 const prisma = new PrismaClient();
 
