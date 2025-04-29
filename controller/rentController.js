@@ -10,7 +10,7 @@ const rentController = {
             const { status, search, page = 1, limit = 10 } = req.query;
             const skip = (page - 1) * limit;
 
-            const where = {};
+            let where = {};
 
             if (status) {
                 where.order = {
@@ -21,10 +21,10 @@ const rentController = {
             if (search) {
                 const searchCondition = {
                     OR: [
-                        { id: { contains: search, mode: 'insensitive' } },
-                        { identification: { contains: search, mode: 'insensitive' } },
-                        { user: { name: { contains: search, mode: 'insensitive' } } },
-                        { order: { products: { some: { product: { name: { contains: search, mode: 'insensitive' } } } } } }
+                        { id: { contains: search.toLowerCase() } },
+                        { identification: { contains: search.toLowerCase() } },
+                        { user: { name: { contains: search.toLowerCase() } } },
+                        { order: { products: { some: { product: { name: { contains: search.toLowerCase() } } } } } }
                     ]
                 };
 
@@ -45,7 +45,8 @@ const rentController = {
                         select: {
                             id: true,
                             name: true,
-                            email: true
+                            email: true,
+                            profile_picture: true
                         }
                     },
                     order: {
@@ -143,7 +144,7 @@ const rentController = {
             const { status, search, page = 1, limit = 10 } = req.query;
             const skip = (page - 1) * limit;
 
-            const where = { user_id: userId };
+            let where = { user_id: userId };
 
             if (status) {
                 where = {
@@ -157,9 +158,9 @@ const rentController = {
             if (search) {
                 const searchCondition = {
                     OR: [
-                        { id: { contains: search, mode: 'insensitive' } },
-                        { identification: { contains: search, mode: 'insensitive' } },
-                        { order: { products: { some: { product: { name: { contains: search, mode: 'insensitive' } } } } } }
+                        { id: { contains: search.toLowerCase() } },
+                        { identification: { contains: search.toLowerCase() } },
+                        { order: { products: { some: { product: { name: { contains: search.toLowerCase() } } } } } }
                     ]
                 };
 
