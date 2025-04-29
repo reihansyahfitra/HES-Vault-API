@@ -10,6 +10,9 @@ router.get('/', authenticate, isAdmin, usersController.getAllUsers);
 //  get users stats
 router.get('/stats', authenticate, isAdmin, usersController.getUserStats);
 
+// Get stats for specific user (user can get their own, admin can get any)
+router.get('/:id/stats', authenticate, usersController.getUserStatsById);
+
 // Get current user profile
 router.get('/me', authenticate, usersController.getCurrentUser);
 

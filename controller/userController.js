@@ -79,6 +79,25 @@ const usersController = {
                     name: true,
                     email: true,
                     profile_picture: true,
+                    rent: {
+                        include: {
+                            order: {
+                                include: {
+                                    products: {
+                                        select: {
+                                            product: {
+                                                select: {
+                                                    id: true,
+                                                    name: true,
+                                                    category: true
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     team: {
                         select: {
                             id: true,
@@ -338,7 +357,100 @@ const usersController = {
             console.error('Error getting user stats:', e);
             res.status(500).json({ message: 'Failed to get user statistics' });
         }
-    }
+    },
+
+    async getUserStatsById(req, res) {
+        try {
+            const { id } = req.params;
+
+            // Check if user exists
+            const user = await prisma.user.findUnique({
+                where: { id }
+            });
+
+            if (!user) {
+                return res.status(404).json({ message: 'User not found' });
+            }
+
+            // Check permissions: Only allow users to view their own stats or admins to view any user's stats
+            const isOwnProfile = id === req.user.id;
+            const currentUser = await prisma.user.findUnique({
+                where: { id: req.user.id },
+                include: { team: true }
+            });
+
+            const isAdmin = currentUser.team.slug === 'administrator';
+
+            if (!isOwnProfile && !isAdmin) {
+                return res.status(403).json({ message: 'Not authorized to view this user\'s statistics' });
+            }
+
+            // Get rental counts for the user
+            const rentalCount = await prisma.rent.count({
+                where: { user_id: id }
+            });
+
+            // Count active rentals (not returned)
+            const activeRentals = await prisma.rent.count({
+                where: {
+                    user_id: id,
+                    order: {
+                        order_status: "ONRENT"
+                    }
+                }
+            });
+
+            // Count completed rentals (returned)
+            const completedRentals = await prisma.rent.count({
+                where: {
+                    user_id: id,
+                    order: {
+                        order_status: "RETURNED"
+                    }
+                }
+            });
+
+            // Get latest rentals for context (optional)
+            const latestRentals = await prisma.rent.findMany({
+                where: { user_id: id },
+                orderBy: {
+                    order: {
+                        order_date: 'desc'
+                    }
+                },
+                take: 5,
+                include: {
+                    order: {
+                        include: {
+                            products: {
+                                select: {
+                                    product: {
+                                        select: {
+                                            id: true,
+                                            name: true,
+                                            category: true
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            console.log(res);
+
+            res.json({
+                rentalCount,
+                activeRentals,
+                completedRentals,
+                latestRentals
+            });
+        } catch (e) {
+            console.error('Error fetching user stats:', e);
+            res.status(500).json({ message: 'Failed to fetch user statistics', error: e.message });
+        }
+    },
 };
 
 module.exports = usersController;
