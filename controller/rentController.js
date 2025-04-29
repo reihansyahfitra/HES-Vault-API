@@ -19,12 +19,21 @@ const rentController = {
             }
 
             if (search) {
-                where.OR = [
-                    { id: { contains: search, mode: 'insensitive' } },
-                    { identification: { contains: search, mode: 'insensitive' } },
-                    { user: { name: { contains: search, mode: 'insensitive' } } },
-                    { order: { products: { some: { product: { name: { contains: search, mode: 'insensitive' } } } } } }
-                ];
+                const searchCondition = {
+                    OR: [
+                        { id: { contains: search, mode: 'insensitive' } },
+                        { identification: { contains: search, mode: 'insensitive' } },
+                        { user: { name: { contains: search, mode: 'insensitive' } } },
+                        { order: { products: { some: { product: { name: { contains: search, mode: 'insensitive' } } } } } }
+                    ]
+                };
+
+                where = status ? {
+                    AND: [
+                        { order: { order_status: status } },
+                        searchCondition
+                    ]
+                } : searchCondition;
             }
 
             const total = await prisma.rent.count({ where });
@@ -49,7 +58,11 @@ const rentController = {
                         }
                     }
                 },
-                orderBy: { created_at: 'desc' },
+                orderBy: {
+                    order: {
+                        order_date: 'desc'
+                    }
+                },
                 skip,
                 take: parseInt(limit)
             });
@@ -133,17 +146,35 @@ const rentController = {
             const where = { user_id: userId };
 
             if (status) {
-                where.order = {
-                    order_status: status
+                where = {
+                    AND: [
+                        { user_id: userId },
+                        { order: { order_status: status } }
+                    ]
                 };
             }
 
             if (search) {
-                where.OR = [
-                    { id: { contains: search, mode: 'insensitive' } },
-                    { identification: { contains: search, mode: 'insensitive' } },
-                    { order: { products: { some: { product: { name: { contains: search, mode: 'insensitive' } } } } } }
-                ];
+                const searchCondition = {
+                    OR: [
+                        { id: { contains: search, mode: 'insensitive' } },
+                        { identification: { contains: search, mode: 'insensitive' } },
+                        { order: { products: { some: { product: { name: { contains: search, mode: 'insensitive' } } } } } }
+                    ]
+                };
+
+                where = status ? {
+                    AND: [
+                        { user_id: userId },
+                        { order: { order_status: status } },
+                        searchCondition
+                    ]
+                } : {
+                    AND: [
+                        { user_id: userId },
+                        searchCondition
+                    ]
+                };
             }
 
             const total = await prisma.rent.count({ where });
@@ -169,7 +200,11 @@ const rentController = {
                         }
                     }
                 },
-                orderBy: { created_at: 'desc' },
+                orderBy: {
+                    order: {
+                        order_date: 'desc'
+                    }
+                },
                 skip,
                 take: parseInt(limit)
             });
