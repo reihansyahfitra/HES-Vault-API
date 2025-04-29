@@ -108,7 +108,13 @@ const rentController = {
                         select: {
                             id: true,
                             name: true,
-                            email: true
+                            email: true,
+                            profile_picture: true,
+                            team: {
+                                select: {
+                                    name: true
+                                }
+                            }
                         }
                     },
                     order: {
