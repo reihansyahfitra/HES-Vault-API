@@ -18,6 +18,7 @@ var cartRouter = require('./routes/cart');
 var ordersRouter = require('./routes/order');
 var rentRouter = require('./routes/rent');
 var imagesRouter = require('./routes/images');
+const teamRouter = require('./routes/teams');
 
 var app = express();
 
@@ -49,6 +50,7 @@ app.use('/cart', cartRouter);
 app.use('/orders', ordersRouter);
 app.use('/rent', rentRouter);
 app.use('/images', imagesRouter);
+app.use('/teams', teamRouter);
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {

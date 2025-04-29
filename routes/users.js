@@ -1,57 +1,25 @@
-var express = require('express');
-var router = express.Router();
+const express = require('express');
+const router = express.Router();
 const { authenticate } = require('../middlewares/authMiddleware');
 const { isAdmin } = require('../middlewares/adminAuthMiddleware');
-const { PrismaClient } = require('../generated/prisma');
+const usersController = require('../controller/userController');
 
-const prisma = new PrismaClient();
+// Get all users (admin only)
+router.get('/', authenticate, isAdmin, usersController.getAllUsers);
 
-/* GET users listing. */
-router.get('/', authenticate, isAdmin, async function (req, res, next) {
-  try {
-    const users = await prisma.user.findMany({
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        team: {
-          select: {
-            name: true
-          }
-        },
-        created_at: true
-      }
-    });
-    res.json(users);
-  } catch (e) {
-    next(e);
-  }
-});
+//  get users stats
+router.get('/stats', authenticate, isAdmin, usersController.getUserStats);
 
-router.get('/me', authenticate, async function (req, res, next) {
-  try {
-    const user = await prisma.user.findUnique({
-      where: { id: req.user.id },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        profile_picture: true,
-        team: {
-          select: {
-            id: true,
-            name: true,
-            slug: true
-          }
-        },
-        created_at: true
-      }
-    });
-    if (!user) return next(createError(404, 'User not found'));
-    res.json(user);
-  } catch (e) {
-    next(e);
-  }
-})
+// Get current user profile
+router.get('/me', authenticate, usersController.getCurrentUser);
+
+// Get specific user (user can get their own, admin can get any)
+router.get('/:id', authenticate, usersController.getUserById);
+
+// Update user (user can update their own, admin can update any including team)
+router.put('/:id', authenticate, usersController.updateUser);
+
+// Delete user (admin only)
+router.delete('/:id', authenticate, isAdmin, usersController.deleteUser);
 
 module.exports = router;
