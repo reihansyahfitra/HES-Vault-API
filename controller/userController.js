@@ -17,8 +17,8 @@ const usersController = {
 
             if (search) {
                 where.OR = [
-                    { name: { contains: search, mode: 'insensitive' } },
-                    { email: { contains: search, mode: 'insensitive' } }
+                    { name: { contains: search.toLowerCase() } },
+                    { email: { contains: search.toLowerCase() } }
                 ];
             }
 
@@ -306,7 +306,6 @@ const usersController = {
         try {
             // Get total users count
             const totalUsers = await prisma.user.count();
-            console.log(totalUsers);
 
             // Get count by team
             const teamStats = await prisma.team.findMany({
