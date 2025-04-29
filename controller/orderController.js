@@ -180,11 +180,53 @@ const orderController = {
 
             const order = await prisma.order.findUnique({
                 where: { id },
-                include: { rent: true }
+                include: {
+                    rent: {
+                        include: {
+                            user: {
+                                select: {
+                                    id: true
+                                }
+                            }
+                        }
+                    }
+                }
             });
+
+            const user = await prisma.user.findUnique({
+                where: {
+                    id: req.user.id
+                },
+                include: {
+                    team: true
+                }
+            })
 
             if (!order) {
                 return res.status(404).json({ message: 'Order not found' });
+            }
+
+            const isAdmin = user.team.slug === 'administrator';
+            const isOwner = order.rent?.user?.id === req.user.id;
+
+            if (!isAdmin) {
+                if (!isOwner && !isAdmin) {
+                    return res.status(403).json({ message: 'You are not authorized to update this order' });
+                }
+
+                // Regular users can only cancel their orders if status is WAITING and APPROVED
+                if (order_status === 'CANCELLED' && order.order_status !== 'WAITING' && order.order_status !== 'APPROVED') {
+                    return res.status(403).json({
+                        message: 'You can only cancel orders that are in WAITING and APPROVED status'
+                    });
+                }
+
+                // Regular users can only cancel, not perform other status changes
+                if (order_status && order_status !== 'CANCELLED') {
+                    return res.status(403).json({
+                        message: 'You are not authorized to change order status'
+                    });
+                }
             }
 
             const updateData = {};
@@ -244,18 +286,22 @@ const orderController = {
             });
 
             if (order_status === 'CANCELLED' && order.order_status !== 'CANCELLED') {
-                await prisma.$transaction(
-                    order.products.map(item =>
-                        prisma.product.update({
-                            where: { id: item.product_id },
-                            data: {
-                                quantity: {
-                                    increment: item.quantity
+                if (order.products && Array.isArray(order.products)) {
+                    await prisma.$transaction(
+                        order.products.map(item =>
+                            prisma.product.update({
+                                where: { id: item.product_id },
+                                data: {
+                                    quantity: {
+                                        increment: item.quantity
+                                    }
                                 }
-                            }
-                        })
-                    )
-                );
+                            })
+                        )
+                    );
+                } else {
+                    console.warn(`No products found for order ${id} during cancellation`);
+                }
             }
 
             res.json({

@@ -1,8 +1,9 @@
 const validateCategory = (req, res, next) => {
-    const { name } = req.body;
+    console.log(req.body.name.name);
+    const name = req.body.name.name;
     const errors = [];
 
-    if (!name || name.trim() === '') {
+    if (!name || name === '') {
         errors.push('Category name is required');
     } else if (name.length < 2) {
         errors.push('Category name must be at least 2 characters');

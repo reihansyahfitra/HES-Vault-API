@@ -136,7 +136,19 @@ const imageController = {
                 return res.status(404).json({ message: 'Rent not found' });
             }
 
-            if (rent.user_id !== req.user.id) {
+            const user = await prisma.user.findUnique({
+                where: {
+                    id: req.user.id
+                },
+                include: {
+                    team: true
+                }
+            })
+
+            const isAdmin = user.team.slug === 'administrator';
+            const isOwner = rent.user.id === user.id;
+
+            if (!isAdmin && !isOwner) {
                 return res.status(403).json({ message: 'Not authorized to update this documentation' });
             }
 

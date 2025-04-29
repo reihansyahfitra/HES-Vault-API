@@ -10,6 +10,6 @@ router.get('/my', authenticate, orderController.getOrdersByUsers);
 
 router.get('/:id', authenticate, orderController.getOrderById);
 
-router.put('/:id/status', authenticate, isAdmin, orderController.updateOrderStatus);
+router.put('/:id/status', authenticate, orderController.updateOrderStatus);
 
 module.exports = router;

@@ -89,7 +89,7 @@ const categoryController = {
 
     async createCategory(req, res) {
         try {
-            const { name } = req.body;
+            const name = req.body.name.name;
 
             const slug = slugify(name, {
                 lower: true,
@@ -121,7 +121,7 @@ const categoryController = {
     async updateCategory(req, res) {
         try {
             const { id } = req.params;
-            const { name } = req.body;
+            const name = req.body.name.name;
 
             if (!name || name.trim() === '') {
                 return res.status(400).json({ message: 'Category name is required' });
